@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: folders.folder.jenkins.crossplane.io
+  name: folders.dashboard.jenkins.crossplane.io
 spec:
-  group: folder.jenkins.crossplane.io
+  group: dashboard.jenkins.crossplane.io
   names:
     categories:
     - crossplane

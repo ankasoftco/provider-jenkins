@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package folder contains group folder API versions
-package folder
+// Package dashboard contains group dashboard API versions
+package dashboard

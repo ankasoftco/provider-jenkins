@@ -32,7 +32,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/crossplane/provider-jenkins/apis/folder/v1alpha1"
+	"github.com/crossplane/provider-jenkins/apis/dashboard/v1alpha1"
 	apisv1alpha1 "github.com/crossplane/provider-jenkins/apis/v1alpha1"
 	"github.com/crossplane/provider-jenkins/internal/controller/features"
 )
