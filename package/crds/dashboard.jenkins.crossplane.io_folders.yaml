@@ -13,8 +13,8 @@ spec:
     - crossplane
     - managed
     - jenkins
-    kind: folder
-    listKind: folderList
+    kind: Folder
+    listKind: FolderList
     plural: folders
     singular: folder
   scope: Cluster
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A folder is an example API type.
+        description: A Folder is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A folderSpec defines the desired state of a folder.
+            description: A FolderSpec defines the desired state of a Folder.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,7 +62,7 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: folderParameters are the configurable fields of a folder.
+                description: FolderParameters are the configurable fields of a Folder.
                 properties:
                   configurableField:
                     type: string
@@ -241,10 +241,10 @@ spec:
             - forProvider
             type: object
           status:
-            description: A folderStatus represents the observed state of a folder.
+            description: A FolderStatus represents the observed state of a Folder.
             properties:
               atProvider:
-                description: folderObservation are the observable fields of a folder.
+                description: FolderObservation are the observable fields of a Folder.
                 properties:
                   observableField:
                     type: string

@@ -25,62 +25,62 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// folderParameters are the configurable fields of a folder.
-type folderParameters struct {
+// FolderParameters are the configurable fields of a Folder.
+type FolderParameters struct {
 	ConfigurableField string `json:"configurableField"`
 }
 
-// folderObservation are the observable fields of a folder.
-type folderObservation struct {
+// FolderObservation are the observable fields of a Folder.
+type FolderObservation struct {
 	ObservableField string `json:"observableField,omitempty"`
 }
 
-// A folderSpec defines the desired state of a folder.
-type folderSpec struct {
+// A FolderSpec defines the desired state of a Folder.
+type FolderSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       folderParameters `json:"forProvider"`
+	ForProvider       FolderParameters `json:"forProvider"`
 }
 
-// A folderStatus represents the observed state of a folder.
-type folderStatus struct {
+// A FolderStatus represents the observed state of a Folder.
+type FolderStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          folderObservation `json:"atProvider,omitempty"`
+	AtProvider          FolderObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// A folder is an example API type.
+// A Folder is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,jenkins}
-type folder struct {
+type Folder struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   folderSpec   `json:"spec"`
-	Status folderStatus `json:"status,omitempty"`
+	Spec   FolderSpec   `json:"spec"`
+	Status FolderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// folderList contains a list of folder
-type folderList struct {
+// FolderList contains a list of Folder
+type FolderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []folder `json:"items"`
+	Items           []Folder `json:"items"`
 }
 
-// folder type metadata.
+// Folder type metadata.
 var (
-	folderKind             = reflect.TypeOf(folder{}).Name()
-	folderGroupKind        = schema.GroupKind{Group: Group, Kind: folderKind}.String()
-	folderKindAPIVersion   = folderKind + "." + SchemeGroupVersion.String()
-	folderGroupVersionKind = SchemeGroupVersion.WithKind(folderKind)
+	FolderKind             = reflect.TypeOf(Folder{}).Name()
+	FolderGroupKind        = schema.GroupKind{Group: Group, Kind: FolderKind}.String()
+	FolderKindAPIVersion   = FolderKind + "." + SchemeGroupVersion.String()
+	FolderGroupVersionKind = SchemeGroupVersion.WithKind(FolderKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&folder{}, &folderList{})
+	SchemeBuilder.Register(&Folder{}, &FolderList{})
 }
