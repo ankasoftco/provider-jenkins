@@ -5,9 +5,9 @@ metadata:
   name: example-provider-secret
 type: Opaque
 data:
-  # credentials: BASE64ENCODED_PROVIDER_CREDS
+  credentials: "password"
 ---
-apiVersion: template.crossplane.io/v1alpha1
+apiVersion: jenkins.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
   name: example
@@ -18,3 +18,5 @@ spec:
       namespace: crossplane-system
       name: example-provider-secret
       key: credentials
+  username: "caner"
+  baseurl: "https"

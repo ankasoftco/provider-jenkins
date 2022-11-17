@@ -1,5 +1,5 @@
-apiVersion: sample.template.crossplane.io/v1alpha1
-kind: MyType
+apiVersion: folder.jenkins.crossplane.io/v1alpha1
+kind: folder
 metadata:
   name: example
 spec:

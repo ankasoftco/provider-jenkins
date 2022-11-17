@@ -1,4 +1,4 @@
-module github.com/crossplane/provider-template
+module github.com/crossplane/provider-jenkins
 
 go 1.19
 
