@@ -25,63 +25,62 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// FolderParameters are the configurable fields of a Folder.
-type FolderParameters struct {
-	Name   string `json:"name"`
-	Parent string `json:"parent"`
+// JobParameters are the configurable fields of a Job.
+type JobParameters struct {
+	ConfigurableField string `json:"configurableField"`
 }
 
-// FolderObservation are the observable fields of a Folder.
-type FolderObservation struct {
-	Name string `json:"name"`
+// JobObservation are the observable fields of a Job.
+type JobObservation struct {
+	ObservableField string `json:"observableField,omitempty"`
 }
 
-// A FolderSpec defines the desired state of a Folder.
-type FolderSpec struct {
+// A JobSpec defines the desired state of a Job.
+type JobSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       FolderParameters `json:"forProvider"`
+	ForProvider       JobParameters `json:"forProvider"`
 }
 
-// A FolderStatus represents the observed state of a Folder.
-type FolderStatus struct {
+// A JobStatus represents the observed state of a Job.
+type JobStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          FolderObservation `json:"atProvider,omitempty"`
+	AtProvider          JobObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// A Folder is an example API type.
+// A Job is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,jenkins}
-type Folder struct {
+type Job struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FolderSpec   `json:"spec"`
-	Status FolderStatus `json:"status,omitempty"`
+	Spec   JobSpec   `json:"spec"`
+	Status JobStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// FolderList contains a list of Folder
-type FolderList struct {
+// JobList contains a list of Job
+type JobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Folder `json:"items"`
+	Items           []Job `json:"items"`
 }
 
-// Folder type metadata.
+// Job type metadata.
 var (
-	FolderKind             = reflect.TypeOf(Folder{}).Name()
-	FolderGroupKind        = schema.GroupKind{Group: Group, Kind: FolderKind}.String()
-	FolderKindAPIVersion   = FolderKind + "." + SchemeGroupVersion.String()
-	FolderGroupVersionKind = SchemeGroupVersion.WithKind(FolderKind)
+	JobKind             = reflect.TypeOf(Job{}).Name()
+	JobGroupKind        = schema.GroupKind{Group: Group, Kind: JobKind}.String()
+	JobKindAPIVersion   = JobKind + "." + SchemeGroupVersion.String()
+	JobGroupVersionKind = SchemeGroupVersion.WithKind(JobKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&Folder{}, &FolderList{})
+	SchemeBuilder.Register(&Job{}, &JobList{})
 }

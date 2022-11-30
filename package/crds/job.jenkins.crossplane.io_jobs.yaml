@@ -5,18 +5,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: folders.dashboard.jenkins.crossplane.io
+  name: jobs.job.jenkins.crossplane.io
 spec:
-  group: dashboard.jenkins.crossplane.io
+  group: job.jenkins.crossplane.io
   names:
     categories:
     - crossplane
     - managed
     - jenkins
-    kind: Folder
-    listKind: FolderList
-    plural: folders
-    singular: folder
+    kind: Job
+    listKind: JobList
+    plural: jobs
+    singular: job
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Folder is an example API type.
+        description: A Job is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A FolderSpec defines the desired state of a Folder.
+            description: A JobSpec defines the desired state of a Job.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,15 +62,12 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: FolderParameters are the configurable fields of a Folder.
+                description: JobParameters are the configurable fields of a Job.
                 properties:
-                  name:
-                    type: string
-                  parent:
+                  configurableField:
                     type: string
                 required:
-                - name
-                - parent
+                - configurableField
                 type: object
               providerConfigRef:
                 default:
@@ -244,15 +241,13 @@ spec:
             - forProvider
             type: object
           status:
-            description: A FolderStatus represents the observed state of a Folder.
+            description: A JobStatus represents the observed state of a Job.
             properties:
               atProvider:
-                description: FolderObservation are the observable fields of a Folder.
+                description: JobObservation are the observable fields of a Job.
                 properties:
-                  name:
+                  observableField:
                     type: string
-                required:
-                - name
                 type: object
               conditions:
                 description: Conditions of the resource.

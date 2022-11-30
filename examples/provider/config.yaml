@@ -4,8 +4,8 @@ metadata:
   namespace: crossplane-system
   name: example-provider-secret
 type: Opaque
-data:
-  credentials: "password"
+stringData:
+  credentials: "test123"
 ---
 apiVersion: jenkins.crossplane.io/v1alpha1
 kind: ProviderConfig
@@ -19,4 +19,4 @@ spec:
       name: example-provider-secret
       key: credentials
   username: "caner"
-  baseurl: "https"
+  baseurl: "http://35.184.233.61:8080/"

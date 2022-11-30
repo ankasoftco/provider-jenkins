@@ -1,0 +1,10 @@
+apiVersion: dashboard.jenkins.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: test1
+    parent: test1
+  providerConfigRef:
+    name: example
