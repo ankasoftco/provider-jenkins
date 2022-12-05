@@ -23,16 +23,15 @@ type Config struct {
 }
 
 // NewClient creates new Jenkins Client with provided Jenkins Configurations.
-func NewClient(c Config) (*jenkins.Jenkins, context.Context) {
-	ctx := context.Background()
+func NewClient(c Config) *jenkins.Jenkins {
 	jenkins := jenkins.CreateJenkins(nil, c.BaseURL, c.Username, c.Password)
 
 	_, err := jenkins.Init(context.Background())
 	if err != nil {
-		// panic("Something Went Wrong")
-		return nil, nil
+		panic("Something Went Wrong")
+		return nil
 	}
-	return jenkins, ctx
+	return jenkins
 }
 
 // GetConfig constructs a Config that can be used to authenticate to Jenkins

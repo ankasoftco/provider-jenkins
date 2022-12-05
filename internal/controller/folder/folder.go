@@ -19,12 +19,10 @@ package folder
 import (
 	"context"
 	"fmt"
-
 	jenkins "github.com/bndr/gojenkins"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -82,7 +80,42 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(c clients.Config) (*jenkins.Jenkins, context.Context)
+	newServiceFn func(c clients.Config) *jenkins.Jenkins
+}
+
+// Connect2 typically produces an ExternalClient by:
+// 1. Tracking that the managed resource is using a ProviderConfig.
+// 2. Getting the managed resource's ProviderConfig.
+// 3. Getting the credentials specified by the ProviderConfig.
+// 4. Using the credentials to form a client.
+func (c *connector) Connect2(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	cr, ok := mg.(*v1alpha1.Folder)
+	if !ok {
+		return nil, errors.New(errNotFolder)
+	}
+
+	if err := c.usage.Track(ctx, mg); err != nil {
+		return nil, errors.Wrap(err, errTrackPCUsage)
+	}
+	/*
+		pc := &apisv1alpha1.ProviderConfig{}
+		if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.GetProviderConfigReference().Name}, pc); err != nil {
+			return nil, errors.Wrap(err, errGetPC)
+		}
+	*/
+
+	cfg, err := clients.GetConfig(ctx, c.kube, cr)
+	if err != nil {
+		return nil, err
+	}
+
+	jenkinsSvc := c.newServiceFn(*cfg)
+	if jenkinsSvc != nil {
+		return nil, errors.Wrap(err, errNewClient)
+	}
+
+	fmt.Printf("33 Observing: ")
+	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
 }
 
 // Connect typically produces an ExternalClient by:
@@ -100,31 +133,21 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
 
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
 	cfg, err := clients.GetConfig(ctx, c.kube, cr)
 	if err != nil {
 		return nil, err
 	}
 
-	jenkinsSvc, cont := c.newServiceFn(*cfg)
-	if jenkinsSvc != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-
-	return &external{service: jenkinsSvc, cont: cont}, nil
+	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
+	kube client.Client
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
 	service *jenkins.Jenkins
-	cont    context.Context
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -141,7 +164,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
 	}
 
-	folder, err := c.service.GetFolder(c.cont, "Testf", "")
+	forProvider := &cr.Spec.ForProvider
+	folder, err := c.service.GetFolder(context.Background(), forProvider.Name)
 	if err != nil {
 		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
 	}
@@ -173,6 +197,15 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	fmt.Printf("Creating: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	folder, err := c.service.CreateFolder(context.Background(), forProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, errors.Wrap(err, errNotFolder)
+	}
+
+	fmt.Printf("Folder Base C: " + folder.Base)
+	fmt.Printf("Folder C: %+v", folder)
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
