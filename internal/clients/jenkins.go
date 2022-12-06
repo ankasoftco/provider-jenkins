@@ -29,7 +29,7 @@ func NewClient(c Config) *jenkins.Jenkins {
 	_, err := jenkins.Init(context.Background())
 	if err != nil {
 		panic("Something Went Wrong")
-		return nil
+		//return nil
 	}
 	return jenkins
 }

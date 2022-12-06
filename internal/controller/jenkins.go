@@ -18,6 +18,7 @@ package controller
 
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
+	"github.com/crossplane/provider-jenkins/internal/controller/job"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/crossplane/provider-jenkins/internal/controller/config"
@@ -30,6 +31,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
 		folder.Setup,
+		job.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err

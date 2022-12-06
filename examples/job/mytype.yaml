@@ -1,0 +1,11 @@
+apiVersion: dashboard.jenkins.crossplane.io/v1alpha1
+kind: Job
+metadata:
+  name: job-example
+spec:
+  forProvider:
+    name: Dec6Test1
+    parent: Testf
+    config: test
+  providerConfigRef:
+    name: provider-jenkins-config

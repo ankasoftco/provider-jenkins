@@ -19,9 +19,10 @@ package job
 import (
 	"context"
 	"fmt"
+	jenkins "github.com/bndr/gojenkins"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -35,6 +36,8 @@ import (
 	"github.com/crossplane/provider-jenkins/apis/dashboard/v1alpha1"
 	apisv1alpha1 "github.com/crossplane/provider-jenkins/apis/v1alpha1"
 	"github.com/crossplane/provider-jenkins/internal/controller/features"
+
+	clients "github.com/crossplane/provider-jenkins/internal/clients"
 )
 
 const (
@@ -44,13 +47,6 @@ const (
 	errGetCreds     = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
-)
-
-// A NoOpService does nothing.
-type NoOpService struct{}
-
-var (
-	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
 )
 
 // Setup adds a controller that reconciles Job managed resources.
@@ -67,7 +63,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newNoOpService}),
+			newServiceFn: clients.NewClient}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
@@ -84,7 +80,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	newServiceFn func(c clients.Config) *jenkins.Jenkins
 }
 
 // Connect typically produces an ExternalClient by:
@@ -102,31 +98,21 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
 
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
+	cfg, err := clients.GetConfig(ctx, c.kube, cr)
 	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
+		return nil, err
 	}
 
-	svc, err := c.newServiceFn(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-
-	return &external{service: svc}, nil
+	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
+	kube client.Client
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
+	service *jenkins.Jenkins
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -138,6 +124,33 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
 
+	externalName := meta.GetExternalName(cr) // What is this
+	if externalName == "" {
+		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
+	}
+
+	forProvider := &cr.Spec.ForProvider
+	var job *jenkins.Job
+	var err error
+	if forProvider.Parent == "" {
+		job, err = c.service.GetJob(context.Background(), forProvider.Name)
+	} else {
+		job, err = c.service.GetJob(context.Background(), forProvider.Name, forProvider.Parent)
+	}
+	if err != nil {
+		panic("ERROR GET " + err.Error())
+	}
+
+	if job != nil {
+		fmt.Println("Job Cant Found " + job.GetName())
+		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
+	}
+
+	if job.GetName() != forProvider.Name {
+		fmt.Println("Job Need To Update " + job.GetName())
+		return managed.ExternalObservation{ResourceUpToDate: false}, nil // trigger Update
+	}
+	fmt.Println("Job Found " + job.GetName())
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -163,6 +176,20 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
+	forProvider := &cr.Spec.ForProvider
+	var job *jenkins.Job
+	var err error
+	if forProvider.Parent == "" {
+		job, err = c.service.CreateJob(context.Background(), forProvider.Config, forProvider.Name)
+	} else {
+		job, err = c.service.CreateJob(context.Background(), forProvider.Config, forProvider.Name, forProvider.Parent)
+	}
+
+	if err != nil {
+		panic("ERROR CREATE " + err.Error())
+	}
+
+	fmt.Println("Job Created:  " + job.GetName())
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -192,6 +219,26 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	fmt.Printf("Deleting: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	var job *jenkins.Job
+	var err error
+	if forProvider.Parent == "" {
+		job, err = c.service.GetJob(context.Background(), forProvider.Name)
+	} else {
+		job, err = c.service.GetJob(context.Background(), forProvider.Name, forProvider.Parent)
+	}
+	if err != nil {
+		panic("ERROR JOB CANT FOUND " + err.Error())
+	}
+
+	deletebool, err := job.Delete(ctx)
+	if err != nil {
+		panic("ERROR JOB CANT DELETE " + err.Error())
+	}
+	if deletebool {
+		panic("ERROR JOB CANT DELETE " + err.Error())
+	}
 
 	return nil
 }

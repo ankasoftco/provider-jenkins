@@ -64,10 +64,16 @@ spec:
               forProvider:
                 description: JobParameters are the configurable fields of a Job.
                 properties:
-                  configurableField:
+                  config:
+                    type: string
+                  name:
+                    type: string
+                  parent:
                     type: string
                 required:
-                - configurableField
+                - config
+                - name
+                - parent
                 type: object
               providerConfigRef:
                 default:
@@ -246,8 +252,10 @@ spec:
               atProvider:
                 description: JobObservation are the observable fields of a Job.
                 properties:
-                  observableField:
+                  name:
                     type: string
+                required:
+                - name
                 type: object
               conditions:
                 description: Conditions of the resource.

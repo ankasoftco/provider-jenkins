@@ -27,12 +27,14 @@ import (
 
 // JobParameters are the configurable fields of a Job.
 type JobParameters struct {
-	ConfigurableField string `json:"configurableField"`
+	Name   string `json:"name"`
+	Parent string `json:"parent"`
+	Config string `json:"config"`
 }
 
 // JobObservation are the observable fields of a Job.
 type JobObservation struct {
-	ObservableField string `json:"observableField,omitempty"`
+	Name string `json:"name"`
 }
 
 // A JobSpec defines the desired state of a Job.
