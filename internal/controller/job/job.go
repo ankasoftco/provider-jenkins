@@ -21,7 +21,6 @@ import (
 	"fmt"
 	jenkins "github.com/bndr/gojenkins"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,7 +101,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("\n\nConnect Completed")
 	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
 }
 
@@ -115,12 +114,28 @@ type external struct {
 	service *jenkins.Jenkins
 }
 
+func getJobByName(name string, parent string, c *external) (*jenkins.Job, error) {
+	var job *jenkins.Job
+	var err error
+
+	if parent == "" {
+		job, err = c.service.GetJob(context.Background(), name)
+	} else {
+		job, err = c.service.GetJob(context.Background(), name, parent)
+	}
+	if job != nil && err != nil {
+		fmt.Println("GET JOB FOUND -> " + job.GetName())
+	} else {
+		fmt.Println("JOB Cant FOUND ->")
+	}
+	return job, err
+}
+
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.Job)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotJob)
 	}
-
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
 
@@ -130,27 +145,21 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	forProvider := &cr.Spec.ForProvider
-	var job *jenkins.Job
-	var err error
-	if forProvider.Parent == "" {
-		job, err = c.service.GetJob(context.Background(), forProvider.Name)
-	} else {
-		job, err = c.service.GetJob(context.Background(), forProvider.Name, forProvider.Parent)
-	}
-	if err != nil {
-		panic("ERROR GET " + err.Error())
-	}
+	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
 
-	if job != nil {
-		fmt.Println("Job Cant Found " + job.GetName())
+	if err != nil && err.Error() == "404" {
+		fmt.Println("Job Cant Found " + forProvider.Name)
 		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
+	} else if err != nil {
+		fmt.Println("ERROR GET " + err.Error())
+	} else {
+		if job.GetName() != forProvider.Name {
+			fmt.Println("\nJob Need To Update " + job.GetName())
+			return managed.ExternalObservation{ResourceUpToDate: false}, nil // trigger Update
+		}
+		fmt.Print("Job Found " + job.GetName() + " Everything OK\n\n")
 	}
 
-	if job.GetName() != forProvider.Name {
-		fmt.Println("Job Need To Update " + job.GetName())
-		return managed.ExternalObservation{ResourceUpToDate: false}, nil // trigger Update
-	}
-	fmt.Println("Job Found " + job.GetName())
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -179,17 +188,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	forProvider := &cr.Spec.ForProvider
 	var job *jenkins.Job
 	var err error
+
 	if forProvider.Parent == "" {
+		fmt.Println("Creating Name " + forProvider.Name + " Config: " + forProvider.Config + "\n\n")
 		job, err = c.service.CreateJob(context.Background(), forProvider.Config, forProvider.Name)
 	} else {
-		job, err = c.service.CreateJob(context.Background(), forProvider.Config, forProvider.Name, forProvider.Parent)
+		fmt.Println("Creating Name: " + forProvider.Name + " Parent: " + forProvider.Parent + " Config: " + forProvider.Config + "\n\n")
+		job, err = c.service.CreateJobInFolder(context.Background(), forProvider.Config, forProvider.Name, forProvider.Parent)
 	}
 
-	if err != nil {
-		panic("ERROR CREATE " + err.Error())
+	if err != nil || job == nil {
+		fmt.Println("\nERROR CREATE " + err.Error())
+	} else {
+		fmt.Println("\nJob Created:  " + job.GetName())
 	}
 
-	fmt.Println("Job Created:  " + job.GetName())
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -221,23 +234,19 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	fmt.Printf("Deleting: %+v", cr)
 
 	forProvider := &cr.Spec.ForProvider
-	var job *jenkins.Job
-	var err error
-	if forProvider.Parent == "" {
-		job, err = c.service.GetJob(context.Background(), forProvider.Name)
-	} else {
-		job, err = c.service.GetJob(context.Background(), forProvider.Name, forProvider.Parent)
-	}
-	if err != nil {
-		panic("ERROR JOB CANT FOUND " + err.Error())
-	}
+	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
 
-	deletebool, err := job.Delete(ctx)
-	if err != nil {
-		panic("ERROR JOB CANT DELETE " + err.Error())
-	}
-	if deletebool {
-		panic("ERROR JOB CANT DELETE " + err.Error())
+	if err != nil && err.Error() == "404" {
+		fmt.Println("DELETE -> Job Cant Found " + forProvider.Name)
+	} else if err != nil {
+		fmt.Println("DELETE -> ERROR " + err.Error())
+	} else {
+		isdeleted, err := job.Delete(context.Background())
+		if err != nil || isdeleted {
+			fmt.Println("ERROR JOB CANT DELETE " + err.Error())
+		} else {
+			fmt.Println("Delete Completed")
+		}
 	}
 
 	return nil
