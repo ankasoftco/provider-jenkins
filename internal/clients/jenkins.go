@@ -2,6 +2,7 @@ package clients
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -28,7 +29,7 @@ func NewClient(c Config) *jenkins.Jenkins {
 
 	_, err := jenkins.Init(context.Background())
 	if err != nil {
-		panic("Something Went Wrong")
+		fmt.Print("Something Went Wrong")
 		//return nil
 	}
 	return jenkins

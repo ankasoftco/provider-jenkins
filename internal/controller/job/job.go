@@ -153,11 +153,16 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	} else if err != nil {
 		fmt.Println("\nGet Job Error: " + err.Error())
 	} else {
-		if job.GetName() != forProvider.Name {
-			fmt.Println("\nJob Need To Be Updated " + job.GetName())
-			return managed.ExternalObservation{ResourceUpToDate: false}, nil // trigger Update
+		jobConfig, err := job.GetConfig(context.Background())
+		if err != nil {
+			fmt.Println("\nGet Config Error: " + err.Error())
+		} else {
+			if jobConfig != forProvider.Config {
+				fmt.Println("\nJob Config Need To Be Updated: " + job.GetName() + "\n")
+				return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: false}, nil // trigger Update
+			}
+			fmt.Print("\nJob Exist: " + job.GetName() + " Everything OK\n\n")
 		}
-		fmt.Print("\nJob Found: " + job.GetName() + " Everything OK\n\n")
 	}
 
 	return managed.ExternalObservation{
@@ -217,6 +222,21 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	fmt.Printf("Updating: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
+	if err != nil {
+		if err.Error() == "404" {
+			fmt.Println("Update Error -> Job Cant Found " + forProvider.Name)
+		} else {
+			fmt.Println("Update Error -> " + err.Error())
+		}
+	} else {
+		err := job.UpdateConfig(context.Background(), forProvider.Config)
+		if err != nil {
+			fmt.Println("Update Config Error -> " + err.Error())
+		}
+	}
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
