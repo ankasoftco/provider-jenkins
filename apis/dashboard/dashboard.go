@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package dashboard contains group Dashboard API versions
+// Package dashboard contains group dashboard API versions
 package dashboard

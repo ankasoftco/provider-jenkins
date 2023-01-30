@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package folder
+package node
 
 import (
 	"context"
 	"fmt"
 	jenkins "github.com/bndr/gojenkins"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,7 +40,7 @@ import (
 )
 
 const (
-	errNotFolder    = "managed resource is not a Folder custom resource"
+	errNotNode      = "managed resource is not a Node custom resource"
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
@@ -49,9 +48,9 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// Setup adds a controller that reconciles Folder managed resources.
+// Setup adds a controller that reconciles Node managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	name := managed.ControllerName(v1alpha1.FolderGroupKind)
+	name := managed.ControllerName(v1alpha1.NodeGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -59,7 +58,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.FolderGroupVersionKind),
+		resource.ManagedKind(v1alpha1.NodeGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -71,7 +70,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.Folder{}).
+		For(&v1alpha1.Node{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -83,50 +82,15 @@ type connector struct {
 	newServiceFn func(c clients.Config) *jenkins.Jenkins
 }
 
-// Connect2 typically produces an ExternalClient by:
-// 1. Tracking that the managed resource is using a ProviderConfig.
-// 2. Getting the managed resource's ProviderConfig.
-// 3. Getting the credentials specified by the ProviderConfig.
-// 4. Using the credentials to form a client.
-func (c *connector) Connect2(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.Folder)
-	if !ok {
-		return nil, errors.New(errNotFolder)
-	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-	/*
-		pc := &apisv1alpha1.ProviderConfig{}
-		if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.GetProviderConfigReference().Name}, pc); err != nil {
-			return nil, errors.Wrap(err, errGetPC)
-		}
-	*/
-
-	cfg, err := clients.GetConfig(ctx, c.kube, cr)
-	if err != nil {
-		return nil, err
-	}
-
-	jenkinsSvc := c.newServiceFn(*cfg)
-	if jenkinsSvc != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-
-	fmt.Printf("33 Observing: ")
-	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
-}
-
 // Connect typically produces an ExternalClient by:
 // 1. Tracking that the managed resource is using a ProviderConfig.
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.Folder)
+	cr, ok := mg.(*v1alpha1.Node)
 	if !ok {
-		return nil, errors.New(errNotFolder)
+		return nil, errors.New(errNotNode)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -137,41 +101,27 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("\n\nConnect Completed")
 	return &external{kube: c.kube, service: c.newServiceFn(*cfg)}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	kube client.Client
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
+	kube    client.Client
 	service *jenkins.Jenkins
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Folder)
+	cr, ok := mg.(*v1alpha1.Node)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotFolder)
+		return managed.ExternalObservation{}, errors.New(errNotNode)
 	}
 
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
-
-	externalName := meta.GetExternalName(cr)
-	if externalName == "" {
-		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
-	}
-
-	forProvider := &cr.Spec.ForProvider
-	folder, err := c.service.GetFolder(context.Background(), forProvider.Name)
-	if err != nil {
-		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
-	}
-
-	fmt.Printf("Folder Base : " + folder.Base)
-	fmt.Printf("Folder : %+v", folder)
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -191,21 +141,12 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Folder)
+	cr, ok := mg.(*v1alpha1.Node)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotFolder)
+		return managed.ExternalCreation{}, errors.New(errNotNode)
 	}
 
 	fmt.Printf("Creating: %+v", cr)
-
-	forProvider := &cr.Spec.ForProvider
-	folder, err := c.service.CreateFolder(context.Background(), forProvider.Name)
-	if err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errNotFolder)
-	}
-
-	fmt.Printf("Folder Base C: " + folder.Base)
-	fmt.Printf("Folder C: %+v", folder)
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -215,9 +156,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Folder)
+	cr, ok := mg.(*v1alpha1.Node)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotFolder)
+		return managed.ExternalUpdate{}, errors.New(errNotNode)
 	}
 
 	fmt.Printf("Updating: %+v", cr)
@@ -230,9 +171,9 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Folder)
+	cr, ok := mg.(*v1alpha1.Node)
 	if !ok {
-		return errors.New(errNotFolder)
+		return errors.New(errNotNode)
 	}
 
 	fmt.Printf("Deleting: %+v", cr)

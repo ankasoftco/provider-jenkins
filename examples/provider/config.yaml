@@ -10,4 +10,4 @@ spec:
       name: jenkins-provider-secret
       key: credentials
   username: "caner"
-  baseurl: "http://35.184.233.61:8080/"
+  baseurl: "http://3.89.89.181:8080/"
