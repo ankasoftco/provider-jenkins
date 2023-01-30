@@ -25,8 +25,8 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// NodeParameters are the configurable fields of a Node.
-type NodeParameters struct {
+// JenkinsNodeParameters are the configurable fields of a JenkinsNode.
+type JenkinsNodeParameters struct {
 	Name         string `json:"name"`
 	NumExecutors int64  `json:"numExecutors"`
 	Description  string `json:"description"`
@@ -34,8 +34,8 @@ type NodeParameters struct {
 	Label        string `json:"label"`
 }
 
-// NodeObservation are the observable fields of a Node.
-type NodeObservation struct {
+// JenkinsNodeObservation are the observable fields of a JenkinsNode.
+type JenkinsNodeObservation struct {
 	Name         string `json:"name"`
 	NumExecutors int64  `json:"numExecutors"`
 	Description  string `json:"description"`
@@ -43,52 +43,52 @@ type NodeObservation struct {
 	Label        string `json:"label"`
 }
 
-// A NodeSpec defines the desired state of a Node.
-type NodeSpec struct {
+// A JenkinsNodeSpec defines the desired state of a JenkinsNode.
+type JenkinsNodeSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       NodeParameters `json:"forProvider"`
+	ForProvider       JenkinsNodeParameters `json:"forProvider"`
 }
 
-// A NodeStatus represents the observed state of a Node.
-type NodeStatus struct {
+// A JenkinsNodeStatus represents the observed state of a JenkinsNode.
+type JenkinsNodeStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          NodeObservation `json:"atProvider,omitempty"`
+	AtProvider          JenkinsNodeObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// A Node is an example API type.
+// A JenkinsNode is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,provider-jenkins}
-type Node struct {
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,jenkins}
+type JenkinsNode struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NodeSpec   `json:"spec"`
-	Status NodeStatus `json:"status,omitempty"`
+	Spec   JenkinsNodeSpec   `json:"spec"`
+	Status JenkinsNodeStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// NodeList contains a list of Node
-type NodeList struct {
+// JenkinsNodeList contains a list of JenkinsNode
+type JenkinsNodeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Node `json:"items"`
+	Items           []JenkinsNode `json:"items"`
 }
 
-// Node type metadata.
+// JenkinsNode type metadata.
 var (
-	NodeKind             = reflect.TypeOf(Node{}).Name()
-	NodeGroupKind        = schema.GroupKind{Group: Group, Kind: NodeKind}.String()
-	NodeKindAPIVersion   = NodeKind + "." + SchemeGroupVersion.String()
-	NodeGroupVersionKind = SchemeGroupVersion.WithKind(NodeKind)
+	JenkinsNodeKind             = reflect.TypeOf(JenkinsNode{}).Name()
+	JenkinsNodeGroupKind        = schema.GroupKind{Group: Group, Kind: JenkinsNodeKind}.String()
+	JenkinsNodeKindAPIVersion   = JenkinsNodeKind + "." + SchemeGroupVersion.String()
+	JenkinsNodeGroupVersionKind = SchemeGroupVersion.WithKind(JenkinsNodeKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&Node{}, &NodeList{})
+	SchemeBuilder.Register(&JenkinsNode{}, &JenkinsNodeList{})
 }

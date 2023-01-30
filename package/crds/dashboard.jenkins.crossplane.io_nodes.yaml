@@ -5,18 +5,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: jobs.dashboard.provider-jenkins.crossplane.io
+  name: nodes.dashboard.jenkins.crossplane.io
 spec:
-  group: dashboard.provider-jenkins.crossplane.io
+  group: dashboard.jenkins.crossplane.io
   names:
     categories:
     - crossplane
     - managed
-    - jenkins
-    kind: Job
-    listKind: JobList
-    plural: jobs
-    singular: job
+    - provider-jenkins
+    kind: Node
+    listKind: NodeList
+    plural: nodes
+    singular: node
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Job is an example API type.
+        description: A Node is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A JobSpec defines the desired state of a Job.
+            description: A NodeSpec defines the desired state of a Node.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,18 +62,25 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: JobParameters are the configurable fields of a Job.
+                description: NodeParameters are the configurable fields of a Node.
                 properties:
-                  config:
+                  description:
+                    type: string
+                  label:
                     type: string
                   name:
                     type: string
-                  parent:
+                  numExecutors:
+                    format: int64
+                    type: integer
+                  remoteFS:
                     type: string
                 required:
-                - config
+                - description
+                - label
                 - name
-                - parent
+                - numExecutors
+                - remoteFS
                 type: object
               providerConfigRef:
                 default:
@@ -247,15 +254,28 @@ spec:
             - forProvider
             type: object
           status:
-            description: A JobStatus represents the observed state of a Job.
+            description: A NodeStatus represents the observed state of a Node.
             properties:
               atProvider:
-                description: JobObservation are the observable fields of a Job.
+                description: NodeObservation are the observable fields of a Node.
                 properties:
+                  description:
+                    type: string
+                  label:
+                    type: string
                   name:
                     type: string
+                  numExecutors:
+                    format: int64
+                    type: integer
+                  remoteFS:
+                    type: string
                 required:
+                - description
+                - label
                 - name
+                - numExecutors
+                - remoteFS
                 type: object
               conditions:
                 description: Conditions of the resource.

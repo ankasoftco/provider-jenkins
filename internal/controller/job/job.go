@@ -203,7 +203,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	if err != nil || job == nil {
-		fmt.Println("\nCreating Error " + err.Error())
+		fmt.Println("\nCreating Job Error " + err.Error())
 	} else {
 		fmt.Println("\nJob Successfully Created:  ", job.GetName())
 	}

@@ -18,8 +18,8 @@ package controller
 
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
+	"github.com/crossplane/provider-jenkins/internal/controller/jenkinsnode"
 	"github.com/crossplane/provider-jenkins/internal/controller/job"
-	"github.com/crossplane/provider-jenkins/internal/controller/node"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/crossplane/provider-jenkins/internal/controller/config"
@@ -31,7 +31,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
 		job.Setup,
-		node.Setup,
+		jenkinsnode.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err

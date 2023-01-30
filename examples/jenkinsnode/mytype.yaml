@@ -1,0 +1,13 @@
+apiVersion: dashboard.jenkins.crossplane.io/v1alpha1
+kind: JenkinsNode
+metadata:
+  name: node-example
+spec:
+  forProvider:
+    name: Jan30Test2
+    numExecutors: 1
+    description: Test provider
+    remoteFS: /home
+    label: NoLabel
+  providerConfigRef:
+    name: provider-jenkins-config

@@ -5,18 +5,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: folders.dashboard.provider-jenkins.crossplane.io
+  name: jenkinsnodes.dashboard.jenkins.crossplane.io
 spec:
-  group: dashboard.provider-jenkins.crossplane.io
+  group: dashboard.jenkins.crossplane.io
   names:
     categories:
     - crossplane
     - managed
     - jenkins
-    kind: Folder
-    listKind: FolderList
-    plural: folders
-    singular: folder
+    kind: JenkinsNode
+    listKind: JenkinsNodeList
+    plural: jenkinsnodes
+    singular: jenkinsnode
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Folder is an example API type.
+        description: A JenkinsNode is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A FolderSpec defines the desired state of a Folder.
+            description: A JenkinsNodeSpec defines the desired state of a JenkinsNode.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,15 +62,26 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: FolderParameters are the configurable fields of a Folder.
+                description: JenkinsNodeParameters are the configurable fields of
+                  a JenkinsNode.
                 properties:
+                  description:
+                    type: string
+                  label:
+                    type: string
                   name:
                     type: string
-                  parent:
+                  numExecutors:
+                    format: int64
+                    type: integer
+                  remoteFS:
                     type: string
                 required:
+                - description
+                - label
                 - name
-                - parent
+                - numExecutors
+                - remoteFS
                 type: object
               providerConfigRef:
                 default:
@@ -244,15 +255,29 @@ spec:
             - forProvider
             type: object
           status:
-            description: A FolderStatus represents the observed state of a Folder.
+            description: A JenkinsNodeStatus represents the observed state of a JenkinsNode.
             properties:
               atProvider:
-                description: FolderObservation are the observable fields of a Folder.
+                description: JenkinsNodeObservation are the observable fields of a
+                  JenkinsNode.
                 properties:
+                  description:
+                    type: string
+                  label:
+                    type: string
                   name:
                     type: string
+                  numExecutors:
+                    format: int64
+                    type: integer
+                  remoteFS:
+                    type: string
                 required:
+                - description
+                - label
                 - name
+                - numExecutors
+                - remoteFS
                 type: object
               conditions:
                 description: Conditions of the resource.

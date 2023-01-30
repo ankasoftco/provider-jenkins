@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package jenkinsnode
 
 import (
 	"context"
@@ -40,17 +40,17 @@ import (
 )
 
 const (
-	errNotNode      = "managed resource is not a Node custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotJenkinsNode = "managed resource is not a JenkinsNode custom resource"
+	errTrackPCUsage   = "cannot track ProviderConfig usage"
+	errGetPC          = "cannot get ProviderConfig"
+	errGetCreds       = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
-// Setup adds a controller that reconciles Node managed resources.
+// Setup adds a controller that reconciles JenkinsNode managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	name := managed.ControllerName(v1alpha1.NodeGroupKind)
+	name := managed.ControllerName(v1alpha1.JenkinsNodeGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -58,7 +58,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.NodeGroupVersionKind),
+		resource.ManagedKind(v1alpha1.JenkinsNodeGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -70,7 +70,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.Node{}).
+		For(&v1alpha1.JenkinsNode{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -88,9 +88,9 @@ type connector struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.Node)
+	cr, ok := mg.(*v1alpha1.JenkinsNode)
 	if !ok {
-		return nil, errors.New(errNotNode)
+		return nil, errors.New(errNotJenkinsNode)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -115,13 +115,30 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Node)
+	cr, ok := mg.(*v1alpha1.JenkinsNode)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotNode)
+		return managed.ExternalObservation{}, errors.New(errNotJenkinsNode)
 	}
 
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	node, err := c.service.GetNode(ctx, forProvider.Name)
+	if err != nil && err.Error() == "No node found" {
+		fmt.Println("404 Node Cannot Found: " + forProvider.Name)
+		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
+	} else if err != nil {
+		fmt.Println("\nGet Node Error: " + err.Error())
+	} else {
+		nodeIsOnline, _ := node.IsOnline(ctx)
+		if nodeIsOnline {
+			fmt.Println("Node is Online\n")
+		} else {
+			fmt.Println("Node is Offline\n")
+		}
+		fmt.Print("\nNode Exist: " + node.GetName() + " Everything OK\n\n")
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -141,12 +158,21 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Node)
+	cr, ok := mg.(*v1alpha1.JenkinsNode)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotNode)
+		return managed.ExternalCreation{}, errors.New(errNotJenkinsNode)
 	}
 
 	fmt.Printf("Creating: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	node, err := c.service.CreateNode(ctx, forProvider.Name, int(forProvider.NumExecutors), forProvider.Description, forProvider.RemoteFS, forProvider.Label)
+
+	if err != nil {
+		fmt.Println("\nCreating Node Error " + err.Error())
+	} else {
+		fmt.Println("\nNode Successfully Created:  ", node.GetName())
+	}
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -156,9 +182,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Node)
+	cr, ok := mg.(*v1alpha1.JenkinsNode)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotNode)
+		return managed.ExternalUpdate{}, errors.New(errNotJenkinsNode)
 	}
 
 	fmt.Printf("Updating: %+v", cr)
@@ -171,12 +197,29 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Node)
+	cr, ok := mg.(*v1alpha1.JenkinsNode)
 	if !ok {
-		return errors.New(errNotNode)
+		return errors.New(errNotJenkinsNode)
 	}
 
 	fmt.Printf("Deleting: %+v", cr)
+
+	forProvider := &cr.Spec.ForProvider
+	node, err := c.service.GetNode(ctx, forProvider.Name)
+	if err != nil && err.Error() == "No node found" || node == nil {
+		fmt.Println("404 Node Cannot Found: " + forProvider.Name)
+	} else {
+		result, err := c.service.DeleteNode(ctx, forProvider.Name)
+		if err != nil {
+			fmt.Print("Deleting Node Error: ", err.Error())
+		} else {
+			if result != true {
+				fmt.Print("Node Successfully Deleted")
+			} else {
+				fmt.Print("Failed to Delete Node")
+			}
+		}
+	}
 
 	return nil
 }
