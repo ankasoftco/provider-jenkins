@@ -3,12 +3,10 @@ kind: Provider
 metadata:
   name: provider-jenkins
   annotations:
-    meta.crossplane.io/maintainer: Crossplane Maintainers <info@crossplane.io>
-    meta.crossplane.io/source: github.com/crossplane/provider-jenkins
+    meta.crossplane.io/maintainer: Crossplane Maintainers <support@ankasoft.co>
+    meta.crossplane.io/source: github.com/ankasoftco/provider-jenkins
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
-      A jenkins that can be used to create Crossplane providers.
-
-spec:
-  controller:
-    image: DOCKER_REGISTRY/provider-jenkins-controller:VERSION
+      `provider-jenkins` is the Crossplane infrastructure provider for Jenkins 
+      If you encounter an issue please reach out on [slack.crossplane.io](https://slack.crossplane.io) and create an issue in
+      the [ankasoftco/provider-jet-vra](https://github.com/ankasoftco/provider-jet-vra) repo.
