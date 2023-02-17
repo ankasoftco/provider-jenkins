@@ -10,4 +10,4 @@ spec:
     remoteFS: /home
     label: NoLabel
   providerConfigRef:
-    name: provider-jenkins-config
+    name:   provider-jenkins-config
