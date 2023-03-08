@@ -20,8 +20,7 @@ import (
 	"context"
 	"fmt"
 	jenkins "github.com/bndr/gojenkins"
-
-	"github.com/pkg/errors"
+	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -133,9 +132,9 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	} else {
 		nodeIsOnline, _ := node.IsOnline(ctx)
 		if nodeIsOnline {
-			fmt.Println("Node is Online\n")
+			fmt.Println("Node is Online")
 		} else {
-			fmt.Println("Node is Offline\n")
+			fmt.Println("Node is Offline")
 		}
 		fmt.Print("\nNode Exist: " + node.GetName() + " Everything OK\n\n")
 	}

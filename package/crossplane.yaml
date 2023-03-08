@@ -11,5 +11,5 @@ metadata:
     meta.crossplane.io/readme: |
       `provider-jenkins` is the Crossplane infrastructure provider for Jenkins 
       If you encounter an issue please reach out on [slack.crossplane.io](https://slack.crossplane.io) and create an issue in
-      the [ankasoftco/provider-jet-vra](https://github.com/ankasoftco/provider-jet-vra) repo.
+      the [ankasoftco/provider-jenkins](https://github.com/ankasoftco/provider-jenkins) repo.
     friendly-name.meta.crossplane.io: Provider Jenkins
