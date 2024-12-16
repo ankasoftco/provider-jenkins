@@ -43,8 +43,6 @@ import (
 const (
 	errNotJob       = "managed resource is not a Job custom resource"
 	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
 )
 
 // Setup adds a controller that reconciles Job managed resources.
