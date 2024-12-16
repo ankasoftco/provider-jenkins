@@ -19,6 +19,7 @@ package jenkinsnode
 import (
 	"context"
 	"fmt"
+
 	jenkins "github.com/bndr/gojenkins"
 	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,8 +44,6 @@ const (
 	errTrackPCUsage   = "cannot track ProviderConfig usage"
 	errGetPC          = "cannot get ProviderConfig"
 	errGetCreds       = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
 )
 
 // Setup adds a controller that reconciles JenkinsNode managed resources.
@@ -124,12 +123,15 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	forProvider := &cr.Spec.ForProvider
 	node, err := c.service.GetNode(ctx, forProvider.Name)
-	if err != nil && err.Error() == "No node found" {
+	switch {
+	case err != nil && err.Error() == "No node found":
 		fmt.Println("404 Node Cannot Found: " + forProvider.Name)
 		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
-	} else if err != nil {
+
+	case err != nil:
 		fmt.Println("\nGet Node Error: " + err.Error())
-	} else {
+
+	default:
 		nodeIsOnline, _ := node.IsOnline(ctx)
 		if nodeIsOnline {
 			fmt.Println("Node is Online")
@@ -212,7 +214,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		if err != nil {
 			fmt.Print("Deleting Node Error: ", err.Error())
 		} else {
-			if result != true {
+			if !result {
 				fmt.Print("Node Successfully Deleted")
 			} else {
 				fmt.Print("Failed to Delete Node")

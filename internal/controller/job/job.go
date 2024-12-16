@@ -19,6 +19,7 @@ package job
 import (
 	"context"
 	"fmt"
+
 	jenkins "github.com/bndr/gojenkins"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
@@ -44,8 +45,6 @@ const (
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
 )
 
 // Setup adds a controller that reconciles Job managed resources.
@@ -114,17 +113,18 @@ type external struct {
 	service *jenkins.Jenkins
 }
 
-func getJobByName(name string, parent string, c *external) (*jenkins.Job, error) {
+func getJobByName(ctx context.Context, name string, parent string, c *external) (*jenkins.Job, error) {
 	var job *jenkins.Job
 	var err error
 
 	if parent == "" {
-		job, err = c.service.GetJob(context.Background(), name)
+		job, err = c.service.GetJob(ctx, name)
 	} else {
-		job, err = c.service.GetJob(context.Background(), name, parent)
+		job, err = c.service.GetJob(ctx, name, parent)
 	}
 	if job != nil {
 		fmt.Println("\nGet Job Found -> " + job.GetName())
+		fmt.Println(ctx)
 	} else {
 		fmt.Println("\nJob Cant Found -> " + err.Error())
 	}
@@ -145,22 +145,27 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	forProvider := &cr.Spec.ForProvider
-	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
+	job, err := getJobByName(ctx, forProvider.Name, forProvider.Parent, c)
 
-	if err != nil && err.Error() == "404" {
+	switch {
+	case err != nil && err.Error() == "404":
 		fmt.Println("404 Job Cant Found: " + forProvider.Name)
 		return managed.ExternalObservation{ResourceExists: false}, nil // trigger Create
-	} else if err != nil {
+
+	case err != nil:
 		fmt.Println("\nGet Job Error: " + err.Error())
-	} else {
-		jobConfig, err := job.GetConfig(context.Background())
-		if err != nil {
+
+	default:
+		jobConfig, err := job.GetConfig(ctx)
+		switch {
+		case err != nil:
 			fmt.Println("\nGet Config Error: " + err.Error())
-		} else {
-			if jobConfig != forProvider.Config {
-				fmt.Println("\nJob Config Need To Be Updated: " + job.GetName() + "\n")
-				return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: false}, nil // trigger Update
-			}
+
+		case jobConfig != forProvider.Config:
+			fmt.Println("\nJob Config Need To Be Updated: " + job.GetName() + "\n")
+			return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: false}, nil // trigger Update
+
+		default:
 			fmt.Print("\nJob Exist: " + job.GetName() + " Everything OK\n\n")
 		}
 	}
@@ -196,10 +201,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	if forProvider.Parent == "" {
 		fmt.Println("Creating: " + forProvider.Name + " Config: " + forProvider.Config + "\n\n")
-		job, err = c.service.CreateJob(context.Background(), forProvider.Config, forProvider.Name)
+		job, err = c.service.CreateJob(ctx, forProvider.Config, forProvider.Name)
 	} else {
 		fmt.Println("\nParent: ", forProvider.Parent, " -> Creating: ", forProvider.Name+" Parent: "+forProvider.Parent+" Config: "+forProvider.Config+"\n\n")
-		job, err = c.service.CreateJobInFolder(context.Background(), forProvider.Config, forProvider.Name, forProvider.Parent)
+		job, err = c.service.CreateJobInFolder(ctx, forProvider.Config, forProvider.Name, forProvider.Parent)
 	}
 
 	if err != nil || job == nil {
@@ -224,7 +229,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	fmt.Printf("Updating: %+v", cr)
 
 	forProvider := &cr.Spec.ForProvider
-	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
+	job, err := getJobByName(ctx, forProvider.Name, forProvider.Parent, c)
 	if err != nil {
 		if err.Error() == "404" {
 			fmt.Println("Update Error -> Job Cant Found " + forProvider.Name)
@@ -232,7 +237,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 			fmt.Println("Update Error -> " + err.Error())
 		}
 	} else {
-		err := job.UpdateConfig(context.Background(), forProvider.Config)
+		err := job.UpdateConfig(ctx, forProvider.Config)
 		if err != nil {
 			fmt.Println("Update Config Error -> " + err.Error())
 		}
@@ -254,7 +259,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	fmt.Printf("\nDeleting: %+v", cr)
 
 	forProvider := &cr.Spec.ForProvider
-	job, err := getJobByName(forProvider.Name, forProvider.Parent, c)
+	job, err := getJobByName(ctx, forProvider.Name, forProvider.Parent, c)
 
 	if err != nil {
 		if err.Error() == "404" {
@@ -263,7 +268,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 			fmt.Println("Delete Error -> " + err.Error())
 		}
 	} else {
-		isdeleted, err := job.Delete(context.Background())
+		isdeleted, err := job.Delete(ctx)
 		if err != nil || !isdeleted {
 			fmt.Println("\nError Job Can't Deleted: " + err.Error())
 		} else {
